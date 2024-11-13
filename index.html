@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Klasifikasi Jeruk Segar dan Busuk</title>
+    <style>
+        /* Style similar to the previous example */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            color: #2a9d8f;
+            margin-top: 20px;
+        }
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2a9d8f;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #21867a;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #2a9d8f;
+            color: white;
+        }
+    </style>
+    <!-- Import TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <!-- Add the pre-trained model link if using a Teachable Machine model -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/teachable-machine"></script>
+</head>
+<body>
+    <h1>Monitoring Klasifikasi Jeruk Segar dan Busuk</h1>
+    <div class="container">
+
+        <!-- Panel Scanning Jeruk -->
+        <div class="section" id="scan-section">
+            <h2>Scanning Jeruk</h2>
+            <video id="webcam" autoplay playsinline></video>
+            <button onclick="startScan()">Mulai Scan</button>
+            <p id="scan-status">Status: Menunggu</p>
+        </div>
+
+        <!-- Riwayat Klasifikasi -->
+        <div class="section">
+            <h2>Riwayat Klasifikasi</h2>
+            <table id="history-table">
+                <tr>
+                    <th>No</th>
+                    <th>Tanggal/Waktu</th>
+                    <th>Status</th>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Statistik Total -->
+        <div class="section">
+            <h2>Statistik</h2>
+            <p>Total Jeruk yang Diproses: <span id="total-jeruk">0</span></p>
+            <p>Total Jeruk Segar: <span id="total-segar">0</span></p>
+            <p>Total Jeruk Busuk: <span id="total-busuk">0</span></p>
+        </div>
+
+        <button onclick="resetData()">Reset Data</button>
+    </div>
+
+    <script>
+        let model;
+        let totalJeruk = 0;
+        let totalSegar = 0;
+        let totalBusuk = 0;
+
+        // Function to load the Teachable Machine model
+        async function loadModel() {
+            const modelURL = 'YOUR_MODEL_URL/model.json';
+            model = await tmImage.load(modelURL);
+            console.log("Model loaded");
+        }
+
+        // Start video streaming from the webcam
+        async function setupWebcam() {
+            const webcamElement = document.getElementById('webcam');
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            webcamElement.srcObject = stream;
+        }
+
+        // Start scanning process
+        async function startScan() {
+            document.getElementById("scan-status").innerText = "Status: Sedang Scanning...";
+
+            const prediction = await model.predict(document.getElementById('webcam'));
+            const result = prediction[0].className;  // Assuming className is either "Segar" or "Busuk"
+            
+            addHistory(result);
+            document.getElementById("scan-status").innerText = "Status: Scan Selesai";
+        }
+
+        function addHistory(status) {
+            totalJeruk++;
+            if (status === "Segar") {
+                totalSegar++;
+            } else {
+                totalBusuk++;
+            }
+
+            const table = document.getElementById("history-table");
+            const row = table.insertRow();
+            row.insertCell(0).innerText = totalJeruk;
+            row.insertCell(1).innerText = new Date().toLocaleString();
+            row.insertCell(2).innerText = status;
+
+            updateStatistics();
+        }
+
+        function updateStatistics() {
+            document.getElementById("total-jeruk").innerText = totalJeruk;
+            document.getElementById("total-segar").innerText = totalSegar;
+            document.getElementById("total-busuk").innerText = totalBusuk;
+        }
+
+        function resetData() {
+            totalJeruk = 0;
+            totalSegar = 0;
+            totalBusuk = 0;
+            document.getElementById("history-table").innerHTML = `
+                <tr>
+                    <th>No</th>
+                    <th>Tanggal/Waktu</th>
+                    <th>Status</th>
+                </tr>
+            `;
+            updateStatistics();
+            document.getElementById("scan-status").innerText = "Status: Menunggu";
+        }
+
+        // Initialize the webcam and model on load
+        window.onload = async () => {
+            await setupWebcam();
+            await loadModel();
+        }
+    </script>
+</body>
+</html>
